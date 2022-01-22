@@ -323,6 +323,12 @@ function main($path)
     } else {
         if ($_SERVER['ajax']) return output(getconstStr('RefreshtoLogin'),401);
     }
+
+    // Show disks in root
+    if ($files['showname'] == 'root') return render_list($path, $files);
+
+    if (!driveisfine($_SERVER['disktag'], $drive)) return render_list();
+
     $_SERVER['ishidden'] = passhidden($path);
     if (isset($_GET['thumbnails'])) {
         if ($_SERVER['ishidden']<4) {
@@ -344,11 +350,6 @@ function main($path)
             } else return output(json_encode($exts['img']), 400);
         } else return output('', 401);
     }
-
-    // Show disks in root
-    if ($files['showname'] == 'root') return render_list($path, $files);
-
-    if (!driveisfine($_SERVER['disktag'], $drive)) return render_list();
 
     // list folder
     if ($_SERVER['is_guestup_path'] && !$_SERVER['admin']) {
