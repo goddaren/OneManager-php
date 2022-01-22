@@ -21,7 +21,7 @@ $EnvConfigs = [
 
     'admin'             => 0b000,
     'adminloginpage'    => 0b010,
-    'autoJumpFirstDisk' => 0b010,
+    //'autoJumpFirstDisk' => 0b010,
     'background'        => 0b011,
     'backgroundm'       => 0b011,
     'disableShowThumb'  => 0b010,
@@ -183,7 +183,7 @@ function main($path)
     } else {
         $adminloginpage = getConfig('adminloginpage');
     }
-    if (isset($_GET[$adminloginpage])) {
+    if (isset($_GET['login'])&&$_GET['login']==$adminloginpage) {
         /*if (isset($_GET['preview'])) {
             $url = $_SERVER['PHP_SELF'] . '?preview';
         } else {
@@ -222,7 +222,6 @@ function main($path)
             return output('Please visit <a href="' . $tmp . '">' . $tmp . '</a>.', 301, [ 'Location' => $tmp ]);
         }
         if ($_SERVER['admin']) {
-            $_SERVER['disktag'] = '';
             if (!class_exists($_GET['AddDisk'])) require 'disk' . $slash . $_GET['AddDisk'] . '.php';
                 $drive = new $_GET['AddDisk']($_GET['disktag']);
                 return $drive->AddDisk();
@@ -261,7 +260,7 @@ function main($path)
                 // return a json
                 return output(json_encode($files), 200, ['Content-Type' => 'application/json']);
             }
-            if (getConfig('autoJumpFirstDisk')) return output('', 302, [ 'Location' => path_format($_SERVER['base_path'].'/'.$disktags[0].'/') ]);
+            //if (getConfig('autoJumpFirstDisk')) return output('', 302, [ 'Location' => path_format($_SERVER['base_path'].'/'.$disktags[0].'/') ]);
         } else {
             $_SERVER['disktag'] = splitfirst( substr(path_format($path), 1), '/' )[0];
             //$pos = strpos($path, '/');
@@ -295,19 +294,17 @@ function main($path)
 
     if (!isreferhost()) return message('Must visit from designated host', 'NOT_ALLOWED', 403);
 
-    // Show disks in root
-    if ($files['showname'] == 'root') return render_list($path, $files);
-
-    if (!driveisfine($_SERVER['disktag'], $drive)) return render_list();
-
     // Operate
     if ($_SERVER['ajax']) {
+        //error_log1($_SERVER['REQUEST_METHOD']);
         if ($_GET['action']=='del_upload_cache') {
             // del '.tmp' without login. 无需登录即可删除.tmp后缀文件
+            if (!$drive) return output('Not in drive, or disk error.', 403);
             savecache('path_' . $path1, '', $_SERVER['disktag'], 1); // clear cache.
             return $drive->del_upload_cache($path);
         }
         if ($_GET['action']=='upbigfile') {
+            if (!$drive) return output('Not in drive, or disk error.', 403);
             if (!$_SERVER['admin']) {
                 if (!$_SERVER['is_guestup_path']) return output('Not_Guest_Upload_Folder', 400);
                 if (strpos($_GET['upbigfilename'], '../')!==false) return output('Not_Allow_Cross_Path', 400);
@@ -347,6 +344,11 @@ function main($path)
             } else return output(json_encode($exts['img']), 400);
         } else return output('', 401);
     }
+
+    // Show disks in root
+    if ($files['showname'] == 'root') return render_list($path, $files);
+
+    if (!driveisfine($_SERVER['disktag'], $drive)) return render_list();
 
     // list folder
     if ($_SERVER['is_guestup_path'] && !$_SERVER['admin']) {
@@ -1133,6 +1135,7 @@ function adminform($name = '', $pass = '', $storage = '', $path = '')
 function adminoperate($path)
 {
     global $drive;
+    if ($_SERVER['REQUEST_METHOD']=='POST') if (!$drive) return output('Not in drive, or disk error.', 403);
     $path1 = path_format($_SERVER['list_path'] . '/' . $path);
     if (substr($path1, -1)=='/') $path1=substr($path1, 0, -1);
     $tmpget = $_GET;
